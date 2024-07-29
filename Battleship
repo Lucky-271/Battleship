@@ -1,0 +1,874 @@
+#include <iostream>
+#include <vector>
+using namespace std;
+
+
+
+struct shipxy { //структура чтобы были координаты начала и конца подбитых кораблей
+	int x1;  //начало корабля х
+	int y1;  //начало корабля у
+	int x2;  //конец корабля ч
+	int y2;  //конец корабля у
+};
+
+//
+
+
+
+
+
+//превращает заданную букву координат в число чтобы было проще ориентироваться
+int chislocord(char a) {
+	char b[10] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'}; //массив из всех букв в игре
+	for (int i = 0; i < 10; i++) { //превращение буквы в число
+		if (b[i] == a) //если находит букву возвращает ее число +1(чтобы на поле совпадало)
+			return i + 1; //+1 чтобы было удобнее работать с массивами
+	}
+	return 1; //при неправильном вводе(еще не сделал)
+}
+
+
+
+
+
+
+//выводит игровое поле с подбитыми кораблями
+void showfieldgame(char fieldgame[11][11]) {
+for(int i = 0; i < 11; i++) {
+	for(int j = 0; j < 11; j++) {
+		cout << " " << fieldgame[i][j] << "|";
+	}
+		cout << endl;
+	}
+}
+
+
+
+
+shipxy ship; //активация структуры(глобальная) чтобы туда можно было записать координаты
+//функция попало по кораблю или нет
+//возврат 0 значит не попало
+//возврат 1 значит ранило
+//возврат 2 значит убило
+//возврат 3 значит убило единичку
+int didhitshipgame(char field[11][11], char fieldgame[11][11], int x, int y, int * shipsizeptr) {
+char direction = 0; //направление корабля чтобы проверить ранен или убит
+int shipsize = 0; //размер корабля чтобы удобнее было делать звездочки вокргу подбитых кораблей
+int proverka = 1; //просто 1. можно ее и удалить, но я решил оставить
+
+if(field[x][y] == 'S') { //является ли точка вообще кораблем или это промах
+
+if(field[x + 1][y] != 'S' && field[x - 1][y] != 'S' && field[x][y + 1] != 'S' && field[x][y - 1] != 'S') {
+return 3; //если подбил единичку
+}
+ if(field[x][y - 1] != 'S' && field[x][y + 1] != 'S') //опредление направления корабля
+ direction = 'w';  //вертикально
+ else
+ direction = 'd';  //горизонтально
+   if(direction == 'w') {  //при вертикальном
+	 while(field[x][y] != ' ') {
+	 x--;  //просматриваю от точки вниз
+	 shipsize++;  //определяю размер корабля
+	 if(field[x][y] == 'S' && fieldgame[x][y] == ' ') {  //есть ли еще части корабля
+	 return proverka;   //если есть возвращаю 1
+
+	 }
+	 }
+	 ship.x1 = x + 1;  //даю координаты начал кораблю
+	 ship.y1 = y;
+
+	 x += shipsize;  //указатель на точку куда я стреляю чтобы проверить верхнюю часть
+
+	 while(field[x][y] != ' ') {
+	 x++;  //проверяю верхнюю часть
+	 shipsize++;   //размер корабля
+	 if(field[x][y] == 'S' && fieldgame[x][y] == ' ') {  //возвращаю 1 если все таки нашел остаток
+	 return proverka;
+	 }
+	 }
+	 ship.x2 = x - 1;  //даю координаты конца структуре
+	 ship.y2 = y;
+   }
+
+   //ТОЖЕ САМОЕ ЧТО И СВЕРХУ НО С ГОРИЗОНТАЛЬНЫМИ КОРАБЛЯМИ
+   else if(direction == 'd') {
+	 while(field[x][y] != ' ') {
+	 y--;
+	 shipsize++;
+	 if(field[x][y] == 'S' && fieldgame[x][y] == ' ') {
+	 return proverka;
+	 }
+	 }
+	 ship.x1 = x;
+	 ship.y1 = y + 1;
+
+	 y += shipsize;
+
+	 while(field[x][y] != ' ') {
+	 y++;
+	 shipsize++;
+	 if(field[x][y] == 'S' && fieldgame[x][y] == ' ') {
+	 return proverka;
+	 }
+	 }
+	 ship.x2 = x;
+	 ship.y2 = y - 1;
+   }
+   *shipsizeptr = shipsize;
+   return 2; //если всеже убил возвращаю 2
+ }
+else  //если промах возвращаю 0
+return 0;
+}
+
+
+
+
+//выводит * вокруг единичного корабля после его убийства
+void starsarounddead1(char fieldgame[11][11], int x, int y) {
+	for(int i = x - 1; i <= x + 1; i++) {
+		for(int j = y - 1; j <= y + 1; j++) {
+		if(fieldgame[i][j] != ' ') {
+        continue;
+    }
+		fieldgame[i][j] = '*';
+		}
+	}
+	fieldgame[x][y] = 'X';
+}
+
+//звездочки вокруг подбитого большого корабля
+void starsarounddeadbig(char fieldgame[11][11]) {
+int s = 0;
+int x1 = ship.x1 - 1; //начало массива
+int y1 = ship.y1 - 1;
+int x2 = ship.x2 + 2; //конец массива
+int y2 = ship.y2 + 2;
+if(x2 > 11) //ограничения
+x2 = 11;
+if(x1 < 1)
+x1 = 1;
+if(y2 > 11)
+y2 = 11;
+if(y1 < 1)
+y1 = 1;
+for(int i = x1; i < x2; i++) {
+	for(int j = y1; j < y2; j++) {
+	if(fieldgame[i][j] != ' ') {
+        continue;
+    }
+		fieldgame[i][j] = '*';
+	}
+}
+
+}
+
+
+
+//ОДИНОЧНЫЙ КОРАБЛЬ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+int moveship1(char field[11][11], int x, int y, int &kolvoship){
+
+//ОГРАНИЧЕНИЯ ДЛЯ ПРОФИЛАКТИКИ ЧТОБЫ НЕ ВЫХОДИЛО ЗА ЗОНУ ИГРЫ
+if(x > 10)
+x = 10;
+if(x < 1)
+x = 1;
+if(y > 10)
+y = 10;
+if(y < 1)
+y = 1;
+
+//ДЛЯ ПРОФИЛАКТИКИ ЧТОБЫ НЕЛЬЗЯ БЫЛО ПОСТАВИТЬ КОРАБЛЬ РЯДОМ С ДРУГИМ
+if(field[x + 1][y + 1] == 'S' || field[x - 1][y - 1] == 'S' || field[x + 1][y - 1] == 'S' || field[x - 1][y + 1] == 'S' || field[x][y] == 'S' || field[x + 1][y] == 'S' || field[x - 1][y] == 'S' || field[x][y + 1] == 'S' || field[x][y - 1] == 'S') {
+	cout << "U cant put your ship here. THere should be space between 2 ships\nEnter new coordinates of your ship\n";
+	char a = 0;
+	int b = 0;
+	cin >> a >> b;
+	return moveship1(field, b + 1, chislocord(a), kolvoship);
+}
+
+//ВЫВОД ПОЛЯ С КОРАБЛЕМ
+field[x][y] = 'S';
+for(int i = 0; i < 11; i++) {
+	for(int j = 0; j < 11; j++) {
+		cout << " " << field[i][j] << "|";
+	}
+		cout << endl;
+	}
+
+field[x][y] = ' '; //чтобы не мешало
+
+char move; //буква для передвижения
+cin >> move;
+
+//esli w
+if(move == 'w'){ //при букве сдвиг вверх
+x--;
+//проверка на сталкивание с другим кораблем
+if(field[x + 1][y] == 'S' || field[x - 1][y] == 'S' || field[x][y + 1] == 'S' || field[x][y - 1] == 'S') {
+cout << "U cant move your ship here. There should be space between 2 ships. Move somewhere again, or dont change it\n";
+return moveship1(field, x+1, y, kolvoship);
+}
+}
+
+//esli s
+else if(move == 's') { //при букве сдвиг вниз
+x++;
+//проверка на сталкивание с другим кораблем
+if(field[x + 1][y] == 'S' || field[x - 1][y] == 'S' || field[x][y + 1] == 'S' || field[x][y - 1] == 'S') {
+cout << "U cant move your ship here. There should be space between 2 ships. Move somewhere again, or dont change it\n";
+return moveship1(field, x-1, y, kolvoship);
+}
+}
+//esli a
+else if(move == 'a') { //при букве сдвиг влево
+y--;
+//проверка на сталкивание с другим кораблем
+if(field[x + 1][y] == 'S' || field[x - 1][y] == 'S' || field[x][y + 1] == 'S' || field[x][y - 1] == 'S') {
+cout << "U cant move your ship here. There should be space between 2 ships. Move somewhere again, or dont change it\n";
+return moveship1(field, x, y+1, kolvoship);
+}
+}
+//esli d
+else if(move == 'd') { //при букве сдвиг вправо
+y++;
+//проверка на сталкивание с другим кораблем
+if(field[x + 1][y] == 'S' || field[x - 1][y] == 'S' || field[x][y + 1] == 'S' || field[x][y - 1] == 'S') {
+cout << "U cant move your ship here. There should be space between 2 ships. Move somewhere again, or dont change it\n";
+return moveship1(field, x, y-1, kolvoship);
+}
+}
+
+//esli z ili drugoe
+if(move == 'z') {
+kolvoship++; //увеличиваем колво кораблей поставленных
+field[x][y] = 'S'; //придаем значение чтобы осталось в след. функции
+return 1; //возвращаем 1 и в основную функцию
+}
+
+//ДЛЯ ПРОФИЛАКТИКИ ЧТОБЫ НЕ ВЫХОДИЛО ЗА ЗОНУ ИГРЫ
+if(x > 10)
+x = 10;
+if(x < 1)
+x = 1;
+if(y > 10)
+y = 10;
+if(y < 1)
+y = 1;
+
+field[x][y] = ' '; //очищаем чтобы не было "змейки"
+return moveship1(field, x, y, kolvoship); //рекурсия чтобы снова сделать сдвиг с сохраненными данными
+}
+
+
+
+
+
+
+//ДВОЙНОЙ КОРАБЛЬ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+int moveship2(char field[11][11], int x, int y, char build, int &kolvoship){
+
+char a = 0;  //для профилактики переменные
+int b = 0;
+
+//ЕСЛИ ПОСТАВИЛ КОРАБЛЯ РЯДОМ ИЛИ НА ДРУГОЙ
+if((field[x + 1][y + 1] == 'S' || field[x - 1][y - 1] == 'S' || field[x + 1][y - 1] == 'S' || field[x - 1][y + 1] == 'S' || field[x][y] == 'S' || field[x + 1][y] == 'S' || field[x - 1][y] == 'S' || field[x][y + 1] == 'S' || field[x][y - 1] == 'S') || (x < 1 || x > 10 || y < 1 || y > 10)) {
+cout << "You can`t put your ship there. Don`t break the rules\nEnter the new coordinates of the ship\n";
+cin >> a >> b;
+char c = 0;
+cout << "Enter the direction of your new ship(w, a, s, d)\n";
+cin >> c;
+return moveship2(field, b + 1, chislocord(a), c, kolvoship);
+}
+
+int x1 = x, y1 = y; //координаты 2 части корабля
+
+if(build == 'w'){ //при букве меняем 2 часть корабля вверх
+x1 = x - 1;
+//профилактика
+if(x1 < 1) {
+cout << "You can`t put your ship there. Don`t break the rules\nEnter the new coordinates of the ship\n";
+cin >> a >> b;
+char c = 0;
+cout << "Enter the direction of your new ship(w, a, s, d)\n";
+cin >> c;
+return moveship2(field, b + 1, chislocord(a), c, kolvoship);
+}
+}
+//esli s
+else if(build == 's') { //при букве сдвиг вниз
+x1 = x + 1;
+//профилактика
+if(x1 > 10) {
+cout << "You can`t put your ship there. Don`t break the rules\nEnter the new coordinates of the ship\n";
+cin >> a >> b;
+char c = 0;
+cout << "Enter the direction of your new ship(w, a, s, d)\n";
+cin >> c;
+return moveship2(field, b + 1, chislocord(a), c, kolvoship);
+}
+}
+//esli a
+else if(build == 'a') { //при букве меняем 2 часть корабля влево
+y1 = y - 1;
+//профилактика
+if(y1 < 1) {
+cout << "You can`t put your ship there. Don`t break the rules\nEnter the new coordinates of the ship\n";
+cin >> a >> b;
+char c = 0;
+cout << "Enter the direction of your new ship(w, a, s, d)\n";
+cin >> c;
+return moveship2(field, b + 1, chislocord(a), c, kolvoship);
+}
+}
+//esli d
+else if(build == 'd') { //при букве меняем 2 часть корабля вправо
+y1 = y + 1;
+//профилактика
+if(y1 > 10) {
+cout << "You can`t put your ship there. Don`t break the rules\nEnter the new coordinates of the ship\n";
+cin >> a >> b;
+char c = 0;
+cout << "Enter the direction of your new ship(w, a, s, d)\n";
+cin >> c;
+return moveship2(field, b + 1, chislocord(a), c, kolvoship);
+}
+}
+
+//если продолжил или подвинул корабль куда нельзя
+if(field[x1 + 1][y1] == 'S' || field[x1 - 1][y1] == 'S' || field[x1][y1 + 1] == 'S' || field[x1][y1 - 1] == 'S' || field[x1 + 1][y1 + 1] == 'S' || field[x1 - 1][y1 - 1] == 'S' || field[x1 + 1][y1 - 1] == 'S' || field[x1 - 1][y1 + 1] == 'S') {
+cout << "U cant move or continue your ship here. There should be space between 2 ships.\nEnter new coordinates of your ship.\n";
+char a = 0;
+int b = 0;
+cin >> a >> b;
+char c = 0;
+cout << "Enter the direction of your new ship(w, a, s, d)\n";
+cin >> c;
+return moveship2(field, b + 1, chislocord(a), c, kolvoship);
+}
+
+field[x][y] = 'S'; //придаем значение кораблю
+field[x1][y1] = 'S';
+//выводим результат
+for(int i = 0; i < 11; i++) {
+	for(int j = 0; j < 11; j++) {
+		cout << " " << field[i][j] << "|";
+	}
+		cout << endl;
+}
+
+	char move; //движение корабля и для рекурсии
+	cin >> move; //вводим сторону сдвига
+
+field[x][y] = ' ';  //делаем пустым 1 часть корабля
+field[x1][y1] = ' ';   //делаем пустым 2 часть корабля
+
+//esli w
+if(move == 'w'){ //при букве сдвиг вверх
+x--;
+if(build == 'w') { //профилактика
+ if(x < 2) {
+	cout << "U can`t move your ship there\n";
+ x++;
+ }
+}
+else {
+ if(x < 1) {
+	cout << "U can`t move your ship there\n";
+ x++;
+ }
+}
+}
+
+//esli s
+else if(move == 's') { //при букве сдвиг вниз
+x++;
+if(build == 's') {  //профилактика
+ if(x > 9) {
+	cout << "U can`t move your ship there\n";
+ x--;
+ }
+}
+else {
+ if(x > 10) {
+	cout << "U can`t move your ship there\n";
+ x--;
+ }
+}
+}
+
+//esli a
+else if(move == 'a') { //при букве сдвиг влево
+y--;
+if(build == 'a') {  //профилактика
+ if(y < 2) {
+	cout << "U can`t move your ship there\n";
+ y++;
+ }
+}
+else {
+ if(y < 1) {
+	cout << "U can`t move your ship there\n";
+ y++;
+ }
+}
+}
+
+//esli d
+else if(move == 'd') { //при букве сдвиг вправо
+y++;
+if(build == 'd') {  //профилактика
+ if(y > 9) {
+	cout << "U can`t move your ship there\n";
+ y--;
+ }
+}
+else {
+ if(y > 10) {
+	cout << "U can`t move your ship there\n";
+ y--;
+ }
+}
+}
+
+//при развороте
+else if(move == 'r') {
+//изменение build чтобы менялось направление корабля
+if(build == 'd' || build == 'a')
+build = 's';
+else
+build = 'd';
+}
+
+//esli z ili drugoe
+else {
+//придаем значение кораблю чтобы осталось в след. функции
+field[x][y] = 'S';
+field[x1][y1] = 'S';
+kolvoship++;
+//возвращение 1 при вводе z
+return 1;
+}
+
+return moveship2(field, x, y, build, kolvoship);  //рекурсия для сдвига корабля
+}
+
+
+
+ //ТРОЙНОЙ КОРАБЛЬ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+ int moveship3(char field[11][11], int x, int y, char build, int &kolvoship) {
+ int x1 = x;  //координаты 2 частей корабля
+ int x2 = x;
+ int y1 = y;
+ int y2 = y;
+ char a = 0;
+ int b = 0;
+ char c = 0;
+
+
+ if((field[x + 1][y + 1] == 'S' || field[x - 1][y - 1] == 'S' || field[x + 1][y - 1] == 'S' || field[x - 1][y + 1] == 'S' || field[x][y] == 'S' || field[x + 1][y] == 'S' || field[x - 1][y] == 'S' || field[x][y + 1] == 'S' || field[x][y - 1] == 'S') || (x < 1 || x > 10 || y < 1 || y > 10)) {
+cout << "You can`t put your ship there. Don`t break the rules\nEnter the new coordinates of the ship\n";
+cin >> a >> b;
+cout << "Enter the direction of your new ship(w, a, s, d)\n";
+cin >> c;
+return moveship3(field, b + 1, chislocord(a), c, kolvoship);
+}
+
+
+ if(build == 'w'){ //при букве меняем 2 часть корабля вверх
+x1 = x - 1;
+x2 = x - 2;
+if(x2 < 1) {
+	cout << "U can`t continue your ship there.\nEnter new coordinates of your ship\n";
+	cin >> a >> b;
+	cout <<"Enter the direction of your ship(w, a, s, d)\n";
+	cin >> c;
+	return moveship3(field, b + 1, chislocord(a), c, kolvoship);
+}
+}
+//esli s
+else if(build == 's') { //при букве сдвиг вниз
+x1 = x + 1;
+x2 = x + 2;
+if(x2 > 10) {
+	cout << "U can`t continue your ship there.\nEnter new coordinates of your ship\n";
+	cin >> a >> b;
+	cout <<"Enter the direction of your ship(w, a, s, d)\n";
+	cin >> c;
+	return moveship3(field, b + 1, chislocord(a), c, kolvoship);
+}
+}
+//esli a
+else if(build == 'a') { //при букве меняем 2 часть корабля влево
+y1 = y - 1;
+y2 = y - 2;
+if(y2 < 1) {
+	cout << "U can`t continue your ship there.\nEnter new coordinates of your ship\n";
+	cin >> a >> b;
+	cout <<"Enter the direction of your ship(w, a, s, d)\n";
+	cin >> c;
+	return moveship3(field, b + 1, chislocord(a), c, kolvoship);
+}
+}
+//esli d
+else if(build == 'd') { //при букве меняем 2 часть корабля вправо
+y1 = y + 1;
+y2 = y + 2;
+if(y2 > 10) {
+	cout << "U can`t continue your ship there.\nEnter new coordinates of your ship\n";
+	cin >> a >> b;
+	cout <<"Enter the direction of your ship(w, a, s, d)\n";
+	cin >> c;
+	return moveship3(field, b + 1, chislocord(a), c, kolvoship);
+}
+}
+
+
+//если продолжил или подвинул корабль куда нельзя
+if(field[x2 + 1][y2] == 'S' || field[x2 - 1][y2] == 'S' || field[x2][y2 + 1] == 'S' || field[x2][y2 - 1] == 'S' || field[x2 + 1][y2 + 1] == 'S' || field[x2 - 1][y2 - 1] == 'S' || field[x2 + 1][y2 - 1] == 'S' || field[x2 - 1][y2 + 1] == 'S') {
+cout << "U cant move or continue your ship here. There should be space between 2 ships.\nEnter new coordinates of your ship.\n";
+char a = 0;
+int b = 0;
+cin >> a >> b;
+cout << "Enter the direction of your new ship(w, a, s, d)\n";
+cin >> c;
+return moveship3(field, b + 1, chislocord(a), c, kolvoship);
+}
+
+
+field[x][y] = 'S';     //даем значение оставшимся 2
+field[x1][y1] = 'S';
+field[x2][y2] = 'S';
+
+//выводим результат
+for(int i = 0; i < 11; i++) {
+	for(int j = 0; j < 11; j++) {
+		cout << " " << field[i][j] << "|";
+	}
+		cout << endl;
+}
+
+	char move; //движение для рекурсии
+	cin >> move; //вводим сторону сдвига
+
+field[x][y] = ' ';  //делаем пустым 1 часть корабля
+field[x1][y1] = ' ';   //делаем пустым 2 часть корабля
+field[x2][y2] = ' ';
+
+//esli w
+if(move == 'w'){ //при букве сдвиг вверх
+x--;
+if(build == 'w') {  //профилактика
+ if(x < 3) {
+	cout << "U can`t move your ship there\n";
+ x++;
+ }
+}
+else {
+ if(x < 1) {
+	cout << "U can`t move your ship there\n";
+ x++;
+ }
+}
+}
+
+//esli s
+else if(move == 's') { //при букве сдвиг вниз
+x++;
+if(build == 's') {  //профилактика
+ if(x > 8) {
+	cout << "U can`t move your ship there\n";
+ x--;
+ }
+}
+else {
+ if(x > 10) {
+	cout << "U can`t move your ship there\n";
+ x--;
+ }
+}
+}
+
+//esli a
+else if(move == 'a') { //при букве сдвиг влево
+y--;
+if(build == 'a') {   //профилактика
+ if(y < 3) {
+	cout << "U can`t move your ship there\n";
+ y++;
+ }
+}
+else {
+ if(y < 1) {
+	cout << "U can`t move your ship there\n";
+ y++;
+ }
+}
+}
+
+//esli d
+else if(move == 'd') { //при букве сдвиг вправо
+y++;
+if(build == 'd') {  //профилактика
+ if(y > 8) {
+	cout << "U can`t move your ship there\n";
+ y--;
+ }
+}
+else {
+ if(y > 10) {
+	cout << "U can`t move your ship there\n";
+ y--;
+ }
+}
+}
+
+//при развороте
+else if(move == 'r') {
+//изменение build чтобы менялось направление корабля
+if(build == 'd' || build == 'a')
+build = 's';
+else
+build = 'd';
+}
+
+//esli z ili drugoe
+else {
+//придаем значение чтобы осталось в след. функции
+field[x][y] = 'S';
+field[x1][y1] = 'S';
+field[x2][y2] = 'S';
+kolvoship++;
+//возвращение при вводе z
+return 1;
+}
+
+return moveship3(field, x, y, build, kolvoship);  //рекурсия для сдвига
+ }
+
+
+
+
+int p1turn(char fieldgame[11][11], bool &didhit, char field[11][11], int * shipsizeptr, int &p1shipsleft) {
+//переменные
+int xs = 0, ys = 0, cordchisla = 0;
+char cordbukvi = 0;
+//выводится поле
+showfieldgame(fieldgame);
+//вводятся координаты атаки
+cin >> cordbukvi;
+cin >> cordchisla;
+//увеличивается чтобы не было числа 10 которое разрушит красивый квадрат
+cordchisla++;
+xs = cordchisla;
+ys = chislocord(cordbukvi);
+//функция проверки
+int didhitship = didhitshipgame(field, fieldgame, cordchisla, chislocord(cordbukvi), shipsizeptr);
+if(didhitship == 1)
+{
+//меняем символ на Х если попал
+fieldgame[cordchisla][chislocord(cordbukvi)] = 'X';
+//вывод текста
+cout << "Great job! U shot him :))\nIT'S YOUR TURN AGAIN\n";
+}
+else if(didhitship == 3) {
+//если убил единичку звезды вокруг нее
+starsarounddead1(fieldgame, xs, ys);
+cout << "PERFECT! U got his ship :D\nIT'S YOUR TURN AGAIN\n";
+fieldgame[0][0] = ' ';
+p1shipsleft++;
+}
+else if(didhitship == 2) { //если убил большого звезды вокруг него
+starsarounddeadbig(fieldgame);
+fieldgame[cordchisla][chislocord(cordbukvi)] = 'X';
+cout << "PERFECT! U got his ship :D\nIT'S YOUR TURN AGAIN\n";
+fieldgame[0][0] = ' ';
+p1shipsleft++;
+}
+else {
+//меняем на * если промазал
+fieldgame[cordchisla][chislocord(cordbukvi)] = '*';
+showfieldgame(fieldgame);
+cout << "U MISSED :(( PASS DEVICE TO YOUR OPPONENT!\n";
+didhit = !didhit;
+}
+}
+
+
+
+
+
+
+//ОСНОВНАЯ ФУНКЦИЯ
+int main() {
+//вывод правил
+cout << "Welcome to the SEAWAR game. Your ships are shown with 'S' symbol. If u miss it shows as '*', and if u hit ur opponent\nzit shows as 'X'.\nIf u wanna move ur ship type 'w' 'a' 's' 'd' symbols. If u wanna reverse ur ship type 'r' symbol and if u like it type 'z'\nGood luck!\n";
+//инициализация переменных
+int shipsize = 0;  //размер корабля
+int * shipsizeptr = &shipsize;  //указатель на размер корабля чтобы менялся в функции
+int xs = 0; //xstart - начальная координата х при проверке на смерть корабля
+int ys = 0; //уstart - начальная координата у при проверке на смерть корабля
+char builddirection = 0; //в какую сторону строится большой корабль
+int kolvoship = 0; //количество оставшихся кораблей
+char cordbukvi = 0; //пользователь вводит букву как координату
+int cordchisla; //пользователь вводит число как координату
+//ARRAYS
+char field1[11][11]; //двумерный массив для хранения кораблей 1 игрока
+char fieldgame1[11][11]; //двумерный массив для атаки кораблей 1 игрока
+char field[11][11]; //двумерный массив для поля изменения с кораблями 2 игрока
+char fieldgame[11][11]; //двумерный массив для атаки кораблей 2 игрока
+
+char chislos[10] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}; //массивы для вывода цифр по бокам мигрового поля
+char bukvas[10] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'}; //массивы для вывода букв по бокам мигрового поля
+
+//ввод поля игры
+for(int i = 1; i < 11; i++) {
+	for(int j = 1; j < 11; j++) {
+		field[i][j] = ' ';
+		fieldgame[i][j] = ' ';
+		field1[i][j] = ' ';
+		fieldgame1[i][j] = ' ';
+	}
+}
+
+//придается пустое значение элементу 0 0
+field[0][0] = ' ';
+fieldgame[0][0] = ' ';
+field1[0][0] = ' ';
+fieldgame1[0][0] = ' ';
+
+//ввод букв на 1 строке
+for(int n = 0; n < 10; n++) {
+field[0][n + 1] = bukvas[n];
+fieldgame[0][n + 1] = bukvas[n];
+field1[0][n + 1] = bukvas[n];
+fieldgame1[0][n + 1] = bukvas[n];
+}
+
+//ввод чисел в 1 столбце
+for(int m = 0; m < 10; m++) {
+field[m + 1][0] = chislos[m];
+fieldgame[m + 1][0] = chislos[m];
+field1[m + 1][0] = chislos[m];
+fieldgame1[m + 1][0] = chislos[m];
+}
+
+//первый вывод игрового поля
+for(int i = 0; i < 11; i++) {
+	for(int j = 0; j < 11; j++) {
+		cout << " " << field[i][j] << "|";
+	}
+	cout << endl;
+}
+
+
+//СТАВИТЬ КОРАБЛИ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//ОДИНОЧНЫЕ!!!!!!!!!!!!!!!!!!
+bool isdone = false; //поставил ли игрок 1 все корабли
+while(true) {
+cout << "If u dont like the place of ur ship u can move it with 'w' 'a' 's' 'd' buttons :)\nIf u like it press 'z'\n";
+kolvoship = 0; //чтобы не было багов
+while(1) {
+cout << "U have put: " << kolvoship <<"/4 1x1 ships\n";
+cout << "Enter coordinates of the square where u want to put ur ship\n";
+//вводятся координаты корабля
+cin >> cordbukvi;
+cin >> cordchisla;
+//увеличивается чтобы не было числа 10 которое разрушит красивый квадрат
+cordchisla++;
+//функция двигать корабль
+moveship1(field, cordchisla, chislocord(cordbukvi), kolvoship);
+if(kolvoship >= 4) {  //если поставил 4 корабля конец цикла
+    break;
+}
+}
+
+
+cout << "Nice! U have put all 1x1 ships\n";
+kolvoship = 0;
+
+//ДВОЙНЫЕ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+while(1) {
+cout << "U have put: " << kolvoship <<"/3 2x1 ships\n";
+cout << "Enter coordinates of the square where u want to put ur ship\n";
+//вводятся координаты корабля
+cin >> cordbukvi;
+cin >> cordchisla;
+//увеличивается чтобы не было числа 10 которое разрушит красивый квадрат
+cordchisla++;
+//ввод стороны в которую построится корабль
+cout << "Enter the direction where u want to continue your ship(w, a, s, d)\n";
+cin >> builddirection;
+moveship2(field, cordchisla, chislocord(cordbukvi), builddirection, kolvoship);
+if(kolvoship >= 3) {   //если поставил 3 корабля конец цикла
+	break;
+}
+}
+
+cout << "Nice! U have put all 2x1 ships\n";
+kolvoship = 0;
+
+//ТРОЙНЫЕ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+while(1) {
+cout << "U have put: " << kolvoship <<"/2 3x1 ships\n";
+cout << "Enter coordinates of the square where u want to put ur ship\n";
+//вводятся координаты корабля
+cin >> cordbukvi;
+cin >> cordchisla;
+//увеличивается чтобы не было числа 10 которое разрушит красивый квадрат
+cordchisla++;
+//ввод стороны в которую построится корабль
+cout << "Enter the direction where u want to continue your ship(w, a, s, d)\n";
+cin >> builddirection;
+moveship3(field, cordchisla, chislocord(cordbukvi), builddirection, kolvoship);
+if(kolvoship >= 2) {   //если поставил 2 корабля конец цикла
+	break;
+}
+}
+
+if(isdone == true) {
+cout << "Player 2 has put all his ships.\nChoose the coordinate where u want to shoot to\nIf u shot the ship there will be 'X' on his place, otherwise there will be '*'\";
+	break;
+}
+else
+cout << "Player 1 has put all his ships. 2nd player's turn to put his ships\n";
+
+for(int i = 1; i < 11; i++) {
+	for(int j = 1; j < 11; j++) {
+		field1[i][j] = field[i][j];
+		field[i][j] = ' ';
+	}
+}
+isdone = true;
+}
+
+
+int p1shipsleft = 0, p2shipsleft = 0;
+bool didhit = true; //тру - 1 игрок, фолз - 2 игрок
+//НАПАДЕНИЕ НА КОРАБЛИ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+while(true) {
+if(didhit) {
+cout << "PLAYER 1 TURN! ATTACK!\n";
+	p1turn(fieldgame, didhit, field, shipsizeptr, p1shipsleft);
+}
+else {
+cout << "PLAYER 2 TURN! ATTACK!\n";
+	p1turn(fieldgame1, didhit, field1, shipsizeptr, p2shipsleft);
+}
+if(p1shipsleft >= 9) {
+	cout << "Congratulations!! Player 1 has won the game! :D";
+}
+if(p2shipsleft >= 9) {
+	cout << "Congratulations!! Player 2 has won the game! :D";
+}
+}
+
+
+//конец программы
+int programmend;
+cout << "THE END";
+cin >> programmend;
+return 0;
+}
